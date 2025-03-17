@@ -136,7 +136,12 @@ def _is_api_route_allowed(
     """
     _user_role = _get_user_role(user_obj=user_obj)
 
-    if valid_token is None:
+    # Check if we're running in proxy server mode or library mode
+    # In proxy server mode, we need to validate the API key
+    # In library mode, we don't need to validate the API key
+    is_proxy_server_mode = getattr(litellm, "is_proxy_server", False)
+    
+    if valid_token is None and is_proxy_server_mode:
         raise Exception("Invalid proxy server token passed. valid_token=None.")
 
     if not _is_user_proxy_admin(user_obj=user_obj):  # if non-admin
