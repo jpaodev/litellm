@@ -336,15 +336,11 @@ def identify(event_details):
 api_base: Optional[str] = None
 headers = None
 
-# Flag to indicate if LiteLLM is being used as a proxy server
-# This is set to True in proxy_server.py during proxy startup
-# Used by auth modules to determine if API key validation is required
-is_proxy_server: bool = False
-
-# Flag to indicate if token validation should be performed in library mode
-# By default, token validation is skipped in library mode
-# Set this to True if you want to validate tokens even in library mode
-validate_token_in_library_mode: bool = False
+# Flag to indicate if LiteLLM is being used as a server (requiring authentication)
+# This is controlled by the LITELLM_IS_SERVER environment variable
+# Default is True (perform authentication checks)
+# Set to False when using LiteLLM as a client library to skip authentication
+is_server: bool = os.getenv("LITELLM_IS_SERVER", "true").lower() == "true"
 api_version = None
 organization = None
 project = None

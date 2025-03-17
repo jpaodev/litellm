@@ -136,12 +136,12 @@ def _is_api_route_allowed(
     """
     _user_role = _get_user_role(user_obj=user_obj)
 
-    # Check if we're running in proxy server mode or library mode
-    # In proxy server mode, we need to validate the API key
-    # In library mode, we don't need to validate the API key
-    is_proxy_server_mode = getattr(litellm, "is_proxy_server", False)
-    
-    if valid_token is None and is_proxy_server_mode:
+    # Check if LiteLLM is being used as a server (requiring authentication)
+    # Skip authentication checks when used as a client library
+    if not litellm.is_server:
+        return True
+        
+    if valid_token is None:
         raise Exception("Invalid proxy server token passed. valid_token=None.")
 
     if not _is_user_proxy_admin(user_obj=user_obj):  # if non-admin
@@ -184,8 +184,12 @@ def _is_allowed_route(
 
 
 async def user_api_key_auth_websocket(websocket: WebSocket):
+    # Check if LiteLLM is being used as a server (requiring authentication)
+    # Skip all authentication checks when used as a client library
+    if not litellm.is_server:
+        return True
+        
     # Accept the WebSocket connection
-
     request = Request(scope={"type": "http"})
     request._url = websocket.url
 
@@ -314,6 +318,11 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
     azure_apim_header: Optional[str],
     request_data: dict,
 ) -> UserAPIKeyAuth:
+
+    # Check if LiteLLM is being used as a server (requiring authentication)
+    # Skip all authentication checks when used as a client library
+    if not litellm.is_server:
+        return UserAPIKeyAuth(user_role=LitellmUserRoles.INTERNAL_USER)
 
     from litellm.proxy.proxy_server import (
         general_settings,
@@ -799,12 +808,7 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
                 )
                 valid_token = None
 
-        # Check if we're running in proxy server mode or library mode
-        # In proxy server mode, we need to validate the API key
-        # In library mode, we don't need to validate the API key
-        is_proxy_server_mode = getattr(litellm, "is_proxy_server", False)
-        
-        if valid_token is None and is_proxy_server_mode:
+        if valid_token is None:
             raise Exception(
                 "Invalid proxy server token passed. Received API Key (hashed)={}. Unable to find token in cache or `LiteLLM_VerificationTokenTable`".format(
                     api_key
@@ -813,10 +817,8 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
 
         user_obj: Optional[LiteLLM_UserTable] = None
         valid_token_dict: dict = {}
-        # Only perform token validation and checks if:
-        # 1. We have a valid token AND
-        # 2. We're in proxy server mode OR we're in library mode but explicitly want to validate the token
-        if valid_token is not None and (is_proxy_server_mode or getattr(litellm, "validate_token_in_library_mode", False)):
+        # Perform token validation and checks
+        if valid_token is not None:
             # Got Valid Token from Cache, DB
             # Run checks for
             # 1. If token can call model
@@ -1109,13 +1111,7 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
         if not _is_route_allowed:
             raise HTTPException(401, detail="Invalid route for UI token")
 
-        # Check if we're running in proxy server mode or library mode
-        # In proxy server mode, we need to validate the API key
-        # In library mode, we don't need to validate the API key
-        is_proxy_server_mode = getattr(litellm, "is_proxy_server", False)
-        
-        # TODO: This check needs to be written better. Disabled for client.
-        if valid_token is None and is_proxy_server_mode:
+        if valid_token is None:
             # No token was found when looking up in the DB
             raise Exception("Invalid proxy server token passed")
         if valid_token_dict is not None:
@@ -1197,6 +1193,11 @@ async def user_api_key_auth(
     """
     Parent function to authenticate user api key / jwt token.
     """
+    
+    # Check if LiteLLM is being used as a server (requiring authentication)
+    # Skip all authentication checks when used as a client library
+    if not litellm.is_server:
+        return UserAPIKeyAuth(user_role=LitellmUserRoles.INTERNAL_USER)
 
     request_data = await _read_request_body(request=request)
 

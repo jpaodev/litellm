@@ -443,10 +443,6 @@ async def proxy_startup_event(app: FastAPI):
     import json
     import litellm
     
-    # Set a flag to indicate we're running in proxy server mode
-    # This will be used by the auth module to determine if API key validation is required
-    litellm.is_proxy_server = True
-    
     init_verbose_loggers()
     ### LOAD MASTER KEY ###
     # check if master key set in environment - load from there
