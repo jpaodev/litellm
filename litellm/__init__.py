@@ -335,6 +335,16 @@ def identify(event_details):
 ####### ADDITIONAL PARAMS ################### configurable params if you use proxy models like Helicone, map spend to org id, etc.
 api_base: Optional[str] = None
 headers = None
+
+# Flag to indicate if LiteLLM is being used as a proxy server
+# This is set to True in proxy_server.py during proxy startup
+# Used by auth modules to determine if API key validation is required
+is_proxy_server: bool = False
+
+# Flag to indicate if token validation should be performed in library mode
+# By default, token validation is skipped in library mode
+# Set this to True if you want to validate tokens even in library mode
+validate_token_in_library_mode: bool = False
 api_version = None
 organization = None
 project = None

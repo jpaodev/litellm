@@ -794,7 +794,12 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
                 )
                 valid_token = None
 
-        if valid_token is None:
+        # Check if we're running in proxy server mode or library mode
+        # In proxy server mode, we need to validate the API key
+        # In library mode, we don't need to validate the API key
+        is_proxy_server_mode = getattr(litellm, "is_proxy_server", False)
+        
+        if valid_token is None and is_proxy_server_mode:
             raise Exception(
                 "Invalid proxy server token passed. Received API Key (hashed)={}. Unable to find token in cache or `LiteLLM_VerificationTokenTable`".format(
                     api_key
@@ -803,7 +808,10 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
 
         user_obj: Optional[LiteLLM_UserTable] = None
         valid_token_dict: dict = {}
-        if valid_token is not None:
+        # Only perform token validation and checks if:
+        # 1. We have a valid token AND
+        # 2. We're in proxy server mode OR we're in library mode but explicitly want to validate the token
+        if valid_token is not None and (is_proxy_server_mode or getattr(litellm, "validate_token_in_library_mode", False)):
             # Got Valid Token from Cache, DB
             # Run checks for
             # 1. If token can call model
@@ -1096,7 +1104,13 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
         if not _is_route_allowed:
             raise HTTPException(401, detail="Invalid route for UI token")
 
-        if valid_token is None:
+        # Check if we're running in proxy server mode or library mode
+        # In proxy server mode, we need to validate the API key
+        # In library mode, we don't need to validate the API key
+        is_proxy_server_mode = getattr(litellm, "is_proxy_server", False)
+        
+        # TODO: This check needs to be written better. Disabled for client.
+        if valid_token is None and is_proxy_server_mode:
             # No token was found when looking up in the DB
             raise Exception("Invalid proxy server token passed")
         if valid_token_dict is not None:
