@@ -8,6 +8,7 @@ Returns a UserAPIKeyAuth object if the API key is valid
 """
 
 import asyncio
+import os
 import re
 import secrets
 from datetime import datetime, timezone
@@ -138,9 +139,20 @@ def _is_api_route_allowed(
 
     # Check if LiteLLM is being used as a server (requiring authentication)
     # Skip authentication checks when used as a client library
-    if not litellm.is_server:
+    # Read the environment variable directly each time to ensure it's up-to-date
+    litellm_is_server_env = os.getenv("LITELLM_IS_SERVER", "true")
+    is_server = litellm_is_server_env.lower() == "true" if litellm_is_server_env else True
+    
+    # Log the environment variable value for debugging
+    verbose_proxy_logger.debug(f"LITELLM_IS_SERVER environment variable value: {litellm_is_server_env}")
+    verbose_proxy_logger.debug(f"is_server flag value: {is_server}")
+    
+    # In client mode, completely bypass all token validation
+    if not is_server:
+        verbose_proxy_logger.debug("Running in client mode, bypassing route authentication check")
         return True
         
+    # Only check for valid token in server mode
     if valid_token is None:
         raise Exception("Invalid proxy server token passed. valid_token=None.")
 
@@ -186,7 +198,17 @@ def _is_allowed_route(
 async def user_api_key_auth_websocket(websocket: WebSocket):
     # Check if LiteLLM is being used as a server (requiring authentication)
     # Skip all authentication checks when used as a client library
-    if not litellm.is_server:
+    # Read the environment variable directly each time to ensure it's up-to-date
+    litellm_is_server_env = os.getenv("LITELLM_IS_SERVER", "true")
+    is_server = litellm_is_server_env.lower() == "true" if litellm_is_server_env else True
+    
+    # Log the environment variable value for debugging
+    verbose_proxy_logger.debug(f"LITELLM_IS_SERVER environment variable value: {litellm_is_server_env}")
+    verbose_proxy_logger.debug(f"is_server flag value: {is_server}")
+    
+    # In client mode, bypass all authentication
+    if not is_server:
+        verbose_proxy_logger.debug("Running in client mode, bypassing WebSocket authentication")
         return True
         
     # Accept the WebSocket connection
@@ -321,7 +343,17 @@ async def _user_api_key_auth_builder(  # noqa: PLR0915
 
     # Check if LiteLLM is being used as a server (requiring authentication)
     # Skip all authentication checks when used as a client library
-    if not litellm.is_server:
+    # Read the environment variable directly each time to ensure it's up-to-date
+    litellm_is_server_env = os.getenv("LITELLM_IS_SERVER", "true")
+    is_server = litellm_is_server_env.lower() == "true" if litellm_is_server_env else True
+    
+    # Log the environment variable value for debugging
+    verbose_proxy_logger.debug(f"LITELLM_IS_SERVER environment variable value: {litellm_is_server_env}")
+    verbose_proxy_logger.debug(f"is_server flag value: {is_server}")
+    
+    # In client mode, bypass all authentication
+    if not is_server:
+        verbose_proxy_logger.debug("Running in client mode, bypassing authentication")
         return UserAPIKeyAuth(user_role=LitellmUserRoles.INTERNAL_USER)
 
     from litellm.proxy.proxy_server import (
@@ -1196,7 +1228,17 @@ async def user_api_key_auth(
     
     # Check if LiteLLM is being used as a server (requiring authentication)
     # Skip all authentication checks when used as a client library
-    if not litellm.is_server:
+    # Read the environment variable directly each time to ensure it's up-to-date
+    litellm_is_server_env = os.getenv("LITELLM_IS_SERVER", "true")
+    is_server = litellm_is_server_env.lower() == "true" if litellm_is_server_env else True
+    
+    # Log the environment variable value for debugging
+    verbose_proxy_logger.debug(f"LITELLM_IS_SERVER environment variable value: {litellm_is_server_env}")
+    verbose_proxy_logger.debug(f"is_server flag value: {is_server}")
+    
+    # In client mode, bypass all authentication
+    if not is_server:
+        verbose_proxy_logger.debug("Running in client mode, bypassing authentication")
         return UserAPIKeyAuth(user_role=LitellmUserRoles.INTERNAL_USER)
 
     request_data = await _read_request_body(request=request)
